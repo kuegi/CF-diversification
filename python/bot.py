@@ -111,7 +111,7 @@ def get_balance(address):
 
 
 def get_tokens(address):
-    tokens = rpc("getaccount", [settings.cfAddress])
+    tokens = rpc("getaccount", [address])
     result = {}
     for token in tokens:
         parts = token.split("@")
@@ -129,6 +129,8 @@ def main_loop(settings: Settings):
     if utxos > 1:
         param = {}
         param[settings.address] = f"{utxos - 1:.8f}@DFI"
+        #WARNING: this takes random utxos from the wallet, so only use it on a clean wallet!
+        #TODO: build custom tx ourself
         txId = rpc("utxostoaccount", [param])
         logger.info(f"converting {utxos - 1:.8f} utxos to token in {txId}")
         waitForTx(txId)
@@ -144,17 +146,21 @@ def main_loop(settings: Settings):
     dusdInCF = cfTokens.get("DUSD") if "DUSD" in cfTokens else 0
     dfiTokenCF = cfTokens.get("DFI") if "DFI" in cfTokens else 0
     communityBalances = rpc("listcommunitybalances")
-    dfiTokenCF = dfiTokenCF + communityBalances.get("CommunityDevelopmentFunds")
+    dfiCommunity= communityBalances.get("CommunityDevelopmentFunds")
 
     # own balances
     myTokens = get_tokens(settings.address)
-    myDUSD = myTokens.get("DUSD") if "DUSD" in cfTokens else 0
-    myDFI = myTokens.get("DFI") if "DFI" in cfTokens else 0
+    myDUSD = myTokens.get("DUSD") if "DUSD" in myTokens else 0
+    myDFI = myTokens.get("DFI") if "DFI" in myTokens else 0
 
-    totalDFI = dfiInCF + dfiTokenCF + utxos + myDFI
+    logger.debug(f"cf funds: {dfiInCF:.2f} + {dfiTokenCF:.2f} + {dfiCommunity:.2f} DFI , {dusdInCF:.2f} DUSD")
+    logger.debug(f"bot funds: {utxos:.2f} + {myDFI:.2f} DFI , {myDUSD:.2f} DUSD")
+
+    totalDFI = dfiCommunity + dfiInCF + dfiTokenCF + utxos + myDFI
     totalDUSDinDFI = (myDUSD + dusdInCF) * dfiPerDUSD
     maxDUSDPartinDFI = (totalDFI + totalDUSDinDFI) * settings.targetRatio
     swapAmount = min(maxDUSDPartinDFI - totalDUSDinDFI, settings.maxSwapPerBlock, maxSwapForMove, myDFI)
+    logger.debug(f"swap Amounts: {swapAmount:.2f} = min[ ({maxDUSDPartinDFI:.2f}-{totalDUSDinDFI:.2f})={maxDUSDPartinDFI - totalDUSDinDFI:.2f}, {maxDUSDPartinDFI:.2f}, { settings.maxSwapPerBlock:.2f}, {maxSwapForMove:.2f}, {myDFI:.2f} ]")
     if swapAmount > 0:
         txId = rpc("poolswap", [
             {
@@ -196,6 +202,7 @@ if __name__ == '__main__':
             logger.info(f"executing at block {currentblock}")
             main_loop(settings)
             lastblock = currentblock
+            logger.info(f"done, waiting till {lastblock+settings.blockPeriod}")
         sleep(10)
 
     logger.info("bot ended")
