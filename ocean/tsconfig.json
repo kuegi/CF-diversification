@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "lib": [
+            "es2020"
+        ],
+        "target": "esnext",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "strict": true,
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "outDir": "out",
+        "sourceMap": true
+    },
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "src/**/*.spec.ts",
+        "src/**/*.mock.ts",
+        "src/**/*.test.ts"
+    ]
+}
