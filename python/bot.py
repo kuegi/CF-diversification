@@ -140,6 +140,13 @@ def main_loop(settings: Settings):
     dfiPerDUSD = dusdDFI["reserveB/reserveA"]
     maxSwapForMove = dusdDFI["reserveB"] * (math.sqrt(1 + settings.maxPercentMove / 100) - 1)
 
+    usdtDFI= list(rpc("getpoolpair", ["USDT-DFI"]).values())[0]
+    usdtPerDFI= usdtDFI["reserveA/reserveB"]
+
+    if usdtPerDFI*dfiPerDUSD > 0.99:
+        logger.info(f"not allowed to swap above 0.99, currently at {usdtPerDFI*dfiPerDUSD:.3f}")
+        return
+
     # CF balances
     dfiInCF = get_balance(settings.cfAddress)
     cfTokens = get_tokens(settings.cfAddress)
