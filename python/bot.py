@@ -105,9 +105,9 @@ def waitForTx(txId, loopSleep=1.0, timeoutBlocks=30):
     return tx is not None and (timeoutBlocks <= 0 or height <= lastBlock)
 
 
-def get_balance(address):
-    utxos = rpc("listunspent", [0, 99999999, [address]])
-    return reduce(lambda prev, utxo: prev + utxo["amount"], utxos, 0)
+def get_balances():
+    utxos = rpc("getbalances")
+    return utxos["mine"]["trusted"], utxos["watchonly"]["trusted"]
 
 
 def get_tokens(address):
@@ -125,16 +125,16 @@ def main_loop(settings: Settings):
     '''
 
     # first check if we have funds as tokens and not utxos
-    utxos = get_balance(settings.address)
-    if utxos > 1:
+    dfiInBOT, dfiInCF = get_balances()
+    if dfiInBOT > 1:
         param = {}
-        param[settings.address] = f"{utxos - 1:.8f}@DFI"
+        param[settings.address] = f"{dfiInBOT - 1:.8f}@DFI"
         #WARNING: this takes random utxos from the wallet, so only use it on a clean wallet!
         #TODO: build custom tx ourself
         txId = rpc("utxostoaccount", [param])
-        logger.info(f"converting {utxos - 1:.8f} utxos to token in {txId}")
+        logger.info(f"converting {dfiInBOT - 1:.8f} utxos to token in {txId}")
         waitForTx(txId)
-        utxos = get_balance(settings.address)
+        dfiInBOT, dfiInCF = get_balances()
 
     dusdDFI = list(rpc("getpoolpair", ["DUSD-DFI"]).values())[0]
     dfiPerDUSD = dusdDFI["reserveB/reserveA"]
@@ -148,7 +148,6 @@ def main_loop(settings: Settings):
         return
 
     # CF balances
-    dfiInCF = get_balance(settings.cfAddress)
     cfTokens = get_tokens(settings.cfAddress)
     dusdInCF = cfTokens.get("DUSD") if "DUSD" in cfTokens else 0
     dfiTokenCF = cfTokens.get("DFI") if "DFI" in cfTokens else 0
@@ -161,9 +160,9 @@ def main_loop(settings: Settings):
     myDFI = myTokens.get("DFI") if "DFI" in myTokens else 0
 
     logger.debug(f"cf funds: {dfiInCF:.2f} + {dfiTokenCF:.2f} + {dfiCommunity:.2f} DFI , {dusdInCF:.2f} DUSD")
-    logger.debug(f"bot funds: {utxos:.2f} + {myDFI:.2f} DFI , {myDUSD:.2f} DUSD")
+    logger.debug(f"bot funds: {dfiInBOT:.2f} + {myDFI:.2f} DFI , {myDUSD:.2f} DUSD")
 
-    totalDFI = dfiCommunity + dfiInCF + dfiTokenCF + utxos + myDFI
+    totalDFI = dfiCommunity + dfiInCF + dfiTokenCF + dfiInBOT + myDFI
     totalDUSDinDFI = (myDUSD + dusdInCF) * dfiPerDUSD
     maxDUSDPartinDFI = (totalDFI + totalDUSDinDFI) * settings.targetRatio
     swapAmount = min(maxDUSDPartinDFI - totalDUSDinDFI, settings.maxSwapPerBlock, maxSwapForMove, myDFI)
