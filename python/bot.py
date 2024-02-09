@@ -176,7 +176,7 @@ def main_loop(settings: Settings):
                 "from": settings.address,
                 "tokenFrom": "DFI",
                 "amountFrom": f"{swapAmount:.8f}",
-                "to": settings.cfAddress,
+                "to": settings.cfAddresses[0],
                 "tokenTo": "DUSD"
             }
         ])
