@@ -23,7 +23,7 @@ class Settings:
         else:
             self.logId = "cfDiversification"
         self.address = settings.get("address")
-        self.cfAddress = settings.get("cfAddress")
+        self.cfAddresses = settings.get("cfAddresses")
         self.maxSwapPerBlock = settings.get("maxSwapPerBlock")
         self.maxPercentMove = settings.get("maxPercentMove")
         self.targetRatio = settings.get("targetRatio")
@@ -126,7 +126,7 @@ def main_loop(settings: Settings):
 
     # first check if we have funds as tokens and not utxos
     dfiInBOT, dfiInCF = get_balances()
-    if dfiInBOT > 1:
+    if dfiInBOT > 1 and False:
         param = {}
         param[settings.address] = f"{dfiInBOT - 1:.8f}@DFI"
         #WARNING: this takes random utxos from the wallet, so only use it on a clean wallet!
@@ -148,9 +148,12 @@ def main_loop(settings: Settings):
         return
 
     # CF balances
-    cfTokens = get_tokens(settings.cfAddress)
-    dusdInCF = cfTokens.get("DUSD") if "DUSD" in cfTokens else 0
-    dfiTokenCF = cfTokens.get("DFI") if "DFI" in cfTokens else 0
+    dusdInCF= 0
+    dfiTokenCF= 0
+    for address in settings.cfAddresses:
+        cfTokens = get_tokens(address)
+        dusdInCF += cfTokens.get("DUSD") if "DUSD" in cfTokens else 0
+        dfiTokenCF += cfTokens.get("DFI") if "DFI" in cfTokens else 0
     communityBalances = rpc("listcommunitybalances")
     dfiCommunity= communityBalances.get("CommunityDevelopmentFunds")
 

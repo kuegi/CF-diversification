@@ -7,6 +7,6 @@ As a reference its implemented for different setups:
 
 ## python version
 
-Be aware that you need to run this on a clean wallet with only the bot address and CF address as watch only in it. This is needed because `utxostoaccount` ignores hints what utxo to use and therefor takes random utxos from your wallet, which would mess up the calculations.
+Be aware that you need to run this on a clean wallet with only the bot address and CF addresses as watch only in it. This is needed because `utxostoaccount` ignores hints what utxo to use and therefor takes random utxos from your wallet, which would mess up the calculations.
 
 be aware that loading the CF address into the wallet creates a 1.42 GB wallet.dat. and loading the utxos (listunspent) on that wallet requires defid to go to 14 GB of used ram.
