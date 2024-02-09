@@ -126,7 +126,7 @@ def main_loop(settings: Settings):
 
     # first check if we have funds as tokens and not utxos
     dfiInBOT, dfiInCF = get_balances()
-    if dfiInBOT > 1 and False:
+    if dfiInBOT > 1:
         param = {}
         param[settings.address] = f"{dfiInBOT - 1:.8f}@DFI"
         #WARNING: this takes random utxos from the wallet, so only use it on a clean wallet!
