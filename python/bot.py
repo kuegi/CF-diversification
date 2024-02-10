@@ -137,11 +137,12 @@ def main_loop(settings: Settings):
         dfiInBOT, dfiInCF = get_balances()
 
     dusdDFI = list(rpc("getpoolpair", ["DUSD-DFI"]).values())[0]
-    dfiPerDUSD = dusdDFI["reserveB/reserveA"]
     maxSwapForMove = dusdDFI["reserveB"] * (math.sqrt(1 + settings.maxPercentMove / 100) - 1)
 
     usdtDFI= list(rpc("getpoolpair", ["USDT-DFI"]).values())[0]
     usdtPerDFI= usdtDFI["reserveA/reserveB"]
+    dfiPerDUSDat1 = usdtDFI["reserveB/reserveA"] # DUSD is valued at $1 so 1 DUSD = 1 USDT
+    dfiPerDUSD = dusdDFI["reserveB/reserveA"]
 
     if usdtPerDFI*dfiPerDUSD > 0.99:
         logger.info(f"not allowed to swap above 0.99, currently at {usdtPerDFI*dfiPerDUSD:.3f}")
@@ -166,7 +167,7 @@ def main_loop(settings: Settings):
     logger.debug(f"bot funds: {dfiInBOT:.2f} + {myDFI:.2f} DFI , {myDUSD:.2f} DUSD")
 
     totalDFI = dfiCommunity + dfiInCF + dfiTokenCF + dfiInBOT + myDFI
-    totalDUSDinDFI = (myDUSD + dusdInCF) * dfiPerDUSD
+    totalDUSDinDFI = (myDUSD + dusdInCF) * dfiPerDUSDat1
     maxDUSDPartinDFI = (totalDFI + totalDUSDinDFI) * settings.targetRatio
     swapAmount = min(maxDUSDPartinDFI - totalDUSDinDFI, settings.maxSwapPerBlock, maxSwapForMove, myDFI)
     logger.debug(f"swap Amounts: {swapAmount:.2f} = min[ ({maxDUSDPartinDFI:.2f}-{totalDUSDinDFI:.2f})={maxDUSDPartinDFI - totalDUSDinDFI:.2f}, {maxDUSDPartinDFI:.2f}, { settings.maxSwapPerBlock:.2f}, {maxSwapForMove:.2f}, {myDFI:.2f} ]")
