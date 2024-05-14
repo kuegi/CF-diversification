@@ -30,6 +30,8 @@ class Settings:
         self.blockPeriod = settings.get("blockPeriod")
         self.forceStart = settings.get("forceStart")
 
+        self.bbbAddress= settings.get("bbbAddress")
+
 
 def setup_logger(settings: Settings):
     name = settings.logId
@@ -111,15 +113,16 @@ def get_balances():
 
 
 def get_tokens(address):
-    tokens = rpc("getaccount", [address])
     result = {}
-    for token in tokens:
-        parts = token.split("@")
-        result[parts[1]] = float(parts[0])
+    if address and len(address) > 0:
+        tokens = rpc("getaccount", [address])
+        for token in tokens:
+            parts = token.split("@")
+            result[parts[1]] = float(parts[0])
     return result
 
 
-def main_loop(settings: Settings):
+def main_loop_cf(settings: Settings):
     '''
     This requires that the CF address was added to the node via importaddress
     '''
@@ -183,6 +186,20 @@ def main_loop(settings: Settings):
         ])
         logger.info(f"swapping {swapAmount:.8f} DFI in {txId}")
 
+def main_loop_bbb(settings: Settings):
+    myTokens = get_tokens(settings.bbbAddress)
+    swapAmount= myTokens.get("DFI") if "DFI" in myTokens else 0
+    if swapAmount > 0:
+        txId = rpc("poolswap", [
+            {
+                "from": settings.bbbAddress,
+                "tokenFrom": "DFI",
+                "amountFrom": f"{swapAmount:.8f}",
+                "to": "8defichainBurnAddressXXXXXXXdRQkSm",
+                "tokenTo": "DUSD"
+            }
+        ])
+        logger.info(f"swap and burn {swapAmount:.8f} DFI in {txId}")
 
 should_run = True
 
@@ -209,8 +226,10 @@ if __name__ == '__main__':
     while should_run:
         currentblock = rpc("getblockcount")
         if currentblock >= lastblock + settings.blockPeriod:
-            logger.info(f"executing at block {currentblock}")
-            main_loop(settings)
+            logger.info(f"executing cf part at block {currentblock}")
+            main_loop_cf(settings)
+            logger.info(f"executing bbb part at block {currentblock}")
+            main_loop_bbb(settings)
             lastblock = currentblock
             logger.info(f"done, waiting till {lastblock+settings.blockPeriod}")
         sleep(10)
